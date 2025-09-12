@@ -1,55 +1,54 @@
 import streamlit as st
+import pickle
 import pandas as pd
-import ast
+import requests
+import gzip
 
-# --- function ---
-def convert3(text):
-    L = []
-    counter = 0
-    
-    # If text is a string, parse it
-    if isinstance(text, str):
-        try:
-            text = ast.literal_eval(text)
-        except:
-            return []
-    
-    # Now text is expected to be a list (of dicts or strings)
-    for i in text:
-        if counter == 3:  # only take first 3
-            break
-        if isinstance(i, dict) and 'name' in i:
-            L.append(i['name'])
-        elif isinstance(i, str):
-            L.append(i)
-        counter += 1
-    return L
-
-
-# --- Streamlit app ---
-st.title("🎬 Movies Cast Extractor")
-
-# Upload dataset
-uploaded_file = st.file_uploader("Upload your movies CSV", type=["csv"])
-
-if uploaded_file is not None:
-    movies = pd.read_csv(uploaded_file)
-    st.write("📊 Dataset Preview:")
-    st.dataframe(movies.head())
-
-    if "cast" in movies.columns:
-        movies["cast"] = movies["cast"].apply(convert3)
-
-        st.write("✅ Cast column after conversion:")
-        st.dataframe(movies[["title", "cast"]].head(20))
-
-        # Option to download processed CSV
-        csv = movies.to_csv(index=False).encode("utf-8")
-        st.download_button(
-            label="📥 Download Processed CSV",
-            data=csv,
-            file_name="movies_processed.csv",
-            mime="text/csv",
-        )
+# Function to fetch movie poster from TMDB API
+def fetch_poster(movie_id):
+    url = f"https://api.themoviedb.org/3/movie/{movie_id}?api_key=YOUR_TMDB_API_KEY&language=en-US"
+    data = requests.get(url).json()
+    poster_path = data.get('poster_path', None)
+    if poster_path:
+        return "https://image.tmdb.org/t/p/w500/" + poster_path
     else:
-        st.error("❌ The dataset does not contain a 'cast' column.")
+        return "https://via.placeholder.com/500x750?text=No+Poster"
+
+# Recommend function
+def recommend(movie):
+    movie_index = movies[movies['title'] == movie].index[0]
+    distances = similarity[movie_index]
+    movie_list = sorted(list(enumerate(distances)), reverse=True, key=lambda x: x[1])[1:6]
+
+    recommended_movies = []
+    recommended_posters = []
+    for i in movie_list:
+        movie_id = movies.iloc[i[0]].movie_id
+        recommended_movies.append(movies.iloc[i[0]].title)
+        recommended_posters.append(fetch_poster(movie_id))
+    return recommended_movies, recommended_posters
+
+
+# Load data
+movies_dict = pickle.load(open('movie_dict.pkl', 'rb'))
+movies = pd.DataFrame(movies_dict)
+
+# Load compressed similarity.pkl.gz
+with gzip.open('similarity.pkl.gz', 'rb') as f:
+    similarity = pickle.load(f)
+
+# Streamlit UI
+st.title("🎬 Movie Recommender System")
+
+selected_movie_name = st.selectbox(
+    "Select a movie:",
+    movies['title'].values
+)
+
+if st.button('Recommend'):
+    names, posters = recommend(selected_movie_name)
+    cols = st.columns(5)
+    for idx, col in enumerate(cols):
+        with col:
+            st.text(names[idx])
+            st.image(posters[idx])
