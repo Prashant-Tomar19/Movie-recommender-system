@@ -30,7 +30,7 @@ def recommend(movie):
 
 
 # Load data
-movies_dict = pickle.load(open('movie_dict.pkl', 'rb'))
+movies_dict = pickle.load(open('movies.pkl', 'rb'))
 movies = pd.DataFrame(movies_dict)
 
 # Load compressed similarity.pkl.gz
