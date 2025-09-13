@@ -42,7 +42,7 @@ def recommend(movie):
         recommended_movies.append(movies.iloc[i[0]].title)
         poster_urls, movie_url = fetch_poster_and_url(movie_id)
         recommended_posters.append(poster_urls[0]) 
-        recommended_links.append(movie_url)
+        recommended_links.append(movie_url[0])
     return recommended_movies, recommended_posters, recommended_links
 
 
