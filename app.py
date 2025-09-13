@@ -20,7 +20,7 @@ def fetch_poster_and_url(movie_id):
         # Construct full URLs for posters
         poster_urls = [
             "https://image.tmdb.org/t/p/w500" + poster['file_path']
-            for poster in posters
+            for poster in posters if poster.get('file path')
         ]
     else:
         poster_urls = ["https://via.placeholder.com/500x750?text=No+Poster"]
