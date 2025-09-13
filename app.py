@@ -4,7 +4,7 @@ import pandas as pd
 import requests
 import gzip
 import os
-from 
+from dotenv import load_dotenv
 
 # 🔑 Load API key from .env
 load_dotenv()
