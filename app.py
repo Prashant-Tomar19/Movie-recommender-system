@@ -3,21 +3,29 @@ import pickle
 import pandas as pd
 import requests
 import gzip
+import os
+from dotenv import load_dotenv
 
-# Function to fetch movie poster + url from TMDB API
+# 🔑 Load API key from .env
+load_dotenv()
+API_KEY = os.getenv("TMDB_API_KEY")
+
+# Function to fetch movie poster + URL from TMDB
 def fetch_poster_and_url(movie_id):
-    url = f"https://api.themoviedb.org/3/movie/{movie_id}?api_key=YOUR_TMDB_API_KEY&language=en-US"
-    data = requests.get(url).json()
-    poster_path = data.get('poster_path', None)
+    url = f"https://api.themoviedb.org/3/movie/{movie_id}?api_key={API_KEY}&language=en-US"
+    response = requests.get(url)
+    data = response.json()
+
+    poster_path = data.get('poster_path')
     if poster_path:
-        poster_url = "https://image.tmdb.org/t/p/w500/" + poster_path
+        poster_url = f"https://image.tmdb.org/t/p/w500/{poster_path}"
     else:
         poster_url = "https://via.placeholder.com/500x750?text=No+Poster"
 
     movie_url = f"https://www.themoviedb.org/movie/{movie_id}"
     return poster_url, movie_url
 
-# Recommend function
+# Recommendation function
 def recommend(movie):
     movie_index = movies[movies['title'] == movie].index[0]
     distances = similarity[movie_index]
@@ -35,15 +43,15 @@ def recommend(movie):
     return recommended_movies, recommended_posters, recommended_links
 
 
-# Load data
+# 📂 Load data
 movies_dict = pickle.load(open('movie_list.pkl', 'rb'))
 movies = pd.DataFrame(movies_dict)
 
-# Load compressed similarity.pkl.gz
 with gzip.open('similarity.pkl.gz', 'rb') as f:
     similarity = pickle.load(f)
 
-# Streamlit UI
+# 🎬 Streamlit UI
+st.set_page_config(page_title="Movie Recommender", page_icon="🎥", layout="wide")
 st.title("🎬 Movie Recommender System")
 
 selected_movie_name = st.selectbox(
@@ -59,9 +67,9 @@ if st.button('Recommend'):
             st.markdown(
                 f"""
                 <a href="{links[idx]}" target="_blank">
-                    <img src="{posters[idx]}" style="width:150px; border-radius:10px; box-shadow:0px 4px 10px rgba(0,0,0,0.5);">
+                    <img src="{posters[idx]}" style="width:180px; border-radius:10px; box-shadow:0px 4px 10px rgba(0,0,0,0.5);">
                 </a>
-                <p style="text-align:center; font-weight:bold;">{names[idx]}</p>
+                <p style="text-align:center; font-weight:bold; color:white;">{names[idx]}</p>
                 """,
                 unsafe_allow_html=True
             )
