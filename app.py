@@ -3,73 +3,59 @@ import pickle
 import pandas as pd
 import requests
 import gzip
+
 import os
-from dotenv import load_dotenv
 
-# --- Load API key securely from .env ---
-load_dotenv()
-API_KEY = os.getenv("TMDB_API_KEY")
+API_KEY = os.getenv("TMDB_API_KEY")  # Load from .env
 
-
-# --- Helper functions ---
-def fetch_movie_id(title):
-    """Search TMDB by title if movie_id is not available."""
-    url = f"https://api.themoviedb.org/3/search/movie?api_key={API_KEY}&query={title}"
+def fetch_poster_and_url(movie_id):
+    """Fetch multiple poster image URLs + movie page link."""
+    url = f"https://api.themoviedb.org/3/movie/{movie_id}/images?api_key={API_KEY}"
     data = requests.get(url).json()
-    if data.get("results"):
-        return data["results"][0]["id"]
-    return None
 
-
-def fetch_poster(movie_id, title=None):
-    """Fetch poster using TMDB movie_id; fallback to title search."""
-    if not movie_id and title:
-        movie_id = fetch_movie_id(title)
-
-    if not movie_id:  # If still not found
-        return "https://via.placeholder.com/500x750?text=No+Poster"
-
-    url = f"https://api.themoviedb.org/3/movie/{movie_id}?api_key={API_KEY}&language=en-US"
-    data = requests.get(url).json()
-    poster_path = data.get('poster_path', None)
-    if poster_path:
-        return "https://image.tmdb.org/t/p/w500/" + poster_path
+    posters = data.get('posters', [])
+    
+    if posters:
+        # Construct full URLs for posters
+        poster_urls = [
+            "https://image.tmdb.org/t/p/w500" + poster['file_path']
+            for poster in posters
+        ]
     else:
-        return "https://via.placeholder.com/500x750?text=No+Poster"
+        poster_urls = ["https://via.placeholder.com/500x750?text=No+Poster"]
 
+    # Movie page URL
+    movie_url = f"https://www.themoviedb.org/movie/{movie_id}"
 
+    return poster_urls, movie_url
+
+# Recommend function
 def recommend(movie):
-    """Recommend similar movies with poster URLs."""
     movie_index = movies[movies['title'] == movie].index[0]
     distances = similarity[movie_index]
     movie_list = sorted(list(enumerate(distances)), reverse=True, key=lambda x: x[1])[1:6]
 
     recommended_movies = []
     recommended_posters = []
-    poster_links = []
-
+    recommended_links = []
     for i in movie_list:
-        movie_id = movies.iloc[i[0]].get("movie_id", None)
-        title = movies.iloc[i[0]].title
-        poster_url = fetch_poster(movie_id, title)
-
-        recommended_movies.append(title)
+        movie_id = movies.iloc[i[0]].movie_id
+        recommended_movies.append(movies.iloc[i[0]].title)
+        poster_url, movie_url = fetch_poster_and_url(movie_id)
         recommended_posters.append(poster_url)
-        poster_links.append(poster_url)
+        recommended_links.append(movie_url)
+    return recommended_movies, recommended_posters, recommended_links
 
-    return recommended_movies, recommended_posters, poster_links
 
-
-# --- Load Data ---
+# Load data
 movies_dict = pickle.load(open('movie_list.pkl', 'rb'))
 movies = pd.DataFrame(movies_dict)
 
-# Load similarity from compressed file
+# Load compressed similarity.pkl.gz
 with gzip.open('similarity.pkl.gz', 'rb') as f:
     similarity = pickle.load(f)
 
-
-# --- Streamlit UI ---
+# Streamlit UI
 st.title("🎬 Movie Recommender System")
 
 selected_movie_name = st.selectbox(
@@ -79,10 +65,15 @@ selected_movie_name = st.selectbox(
 
 if st.button('Recommend'):
     names, posters, links = recommend(selected_movie_name)
-
     cols = st.columns(5)
     for idx, col in enumerate(cols):
         with col:
-            st.markdown(f"**{names[idx]}**")
-            st.image(posters[idx], use_container_width=True)
-            st.markdown(f"[🔗 Poster Link]({links[idx]})")  # clickable poster link
+            st.markdown(
+                f"""
+                <a href="{links[idx]}" target="_blank">
+                    <img src="{posters[idx]}" style="width:150px; border-radius:10px; box-shadow:0px 4px 10px rgba(0,0,0,0.5);">
+                </a>
+                <p style="text-align:center; font-weight:bold;">{names[idx]}</p>
+                """,
+                unsafe_allow_html=True
+            )
