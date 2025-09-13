@@ -7,7 +7,7 @@ from dotenv import load_dotenv,find_dotenv
 import os
 dotenv_path = find_dotenv()
 load_dotenv()
-API_KEY = os.getenv("TMDB_API_KEY").strip()  # Load from .env
+API_KEY = os.getenv("TMDB_API_KEY")  # Load from .env
 
 def fetch_poster_and_url(movie_id):
     """Fetch multiple poster image URLs + movie page link."""
