@@ -5,6 +5,7 @@ import requests
 import gzip
 from dotenv import load_dotenv,find_dotenv
 import os
+dotenv_path = find_dotenv()
 load_dotenv()
 API_KEY = os.getenv("TMDB_API_KEY")  # Load from .env
 
