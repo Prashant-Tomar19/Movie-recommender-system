@@ -6,9 +6,10 @@ import gzip
 import os
 from dotenv import load_dotenv
 
-# Load API key securely from .env
+# --- Load API key securely from .env ---
 load_dotenv()
 API_KEY = os.getenv("TMDB_API_KEY")
+
 
 # --- Helper functions ---
 def fetch_movie_id(title):
@@ -18,6 +19,7 @@ def fetch_movie_id(title):
     if data.get("results"):
         return data["results"][0]["id"]
     return None
+
 
 def fetch_poster(movie_id, title=None):
     """Fetch poster using TMDB movie_id; fallback to title search."""
@@ -35,21 +37,28 @@ def fetch_poster(movie_id, title=None):
     else:
         return "https://via.placeholder.com/500x750?text=No+Poster"
 
+
 def recommend(movie):
+    """Recommend similar movies with poster URLs."""
     movie_index = movies[movies['title'] == movie].index[0]
     distances = similarity[movie_index]
     movie_list = sorted(list(enumerate(distances)), reverse=True, key=lambda x: x[1])[1:6]
 
     recommended_movies = []
     recommended_posters = []
+    poster_links = []
 
     for i in movie_list:
         movie_id = movies.iloc[i[0]].get("movie_id", None)
         title = movies.iloc[i[0]].title
-        recommended_movies.append(title)
-        recommended_posters.append(fetch_poster(movie_id, title))
+        poster_url = fetch_poster(movie_id, title)
 
-    return recommended_movies, recommended_posters
+        recommended_movies.append(title)
+        recommended_posters.append(poster_url)
+        poster_links.append(poster_url)
+
+    return recommended_movies, recommended_posters, poster_links
+
 
 # --- Load Data ---
 movies_dict = pickle.load(open('movie_list.pkl', 'rb'))
@@ -58,6 +67,7 @@ movies = pd.DataFrame(movies_dict)
 # Load similarity from compressed file
 with gzip.open('similarity.pkl.gz', 'rb') as f:
     similarity = pickle.load(f)
+
 
 # --- Streamlit UI ---
 st.title("🎬 Movie Recommender System")
@@ -68,9 +78,11 @@ selected_movie_name = st.selectbox(
 )
 
 if st.button('Recommend'):
-    names, posters = recommend(selected_movie_name)
+    names, posters, links = recommend(selected_movie_name)
+
     cols = st.columns(5)
     for idx, col in enumerate(cols):
         with col:
             st.markdown(f"**{names[idx]}**")
             st.image(posters[idx], use_container_width=True)
+            st.markdown(f"[🔗 Poster Link]({links[idx]})")  # clickable poster link
