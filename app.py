@@ -6,26 +6,35 @@ import gzip
 import os
 from dotenv import load_dotenv
 
-# 🔑 Load API key from .env
+# Load API key securely from .env
 load_dotenv()
 API_KEY = os.getenv("TMDB_API_KEY")
 
-# Function to fetch movie poster + URL from TMDB
-def fetch_poster_and_url(movie_id):
+# --- Helper functions ---
+def fetch_movie_id(title):
+    """Search TMDB by title if movie_id is not available."""
+    url = f"https://api.themoviedb.org/3/search/movie?api_key={API_KEY}&query={title}"
+    data = requests.get(url).json()
+    if data.get("results"):
+        return data["results"][0]["id"]
+    return None
+
+def fetch_poster(movie_id, title=None):
+    """Fetch poster using TMDB movie_id; fallback to title search."""
+    if not movie_id and title:
+        movie_id = fetch_movie_id(title)
+
+    if not movie_id:  # If still not found
+        return "https://via.placeholder.com/500x750?text=No+Poster"
+
     url = f"https://api.themoviedb.org/3/movie/{movie_id}?api_key={API_KEY}&language=en-US"
-    response = requests.get(url)
-    data = response.json()
-
-    poster_path = data.get('poster_path')
+    data = requests.get(url).json()
+    poster_path = data.get('poster_path', None)
     if poster_path:
-        poster_url = f"https://image.tmdb.org/t/p/w500/{poster_path}"
+        return "https://image.tmdb.org/t/p/w500/" + poster_path
     else:
-        poster_url = "https://via.placeholder.com/500x750?text=No+Poster"
+        return "https://via.placeholder.com/500x750?text=No+Poster"
 
-    movie_url = f"https://www.themoviedb.org/movie/{movie_id}"
-    return poster_url, movie_url
-
-# Recommendation function
 def recommend(movie):
     movie_index = movies[movies['title'] == movie].index[0]
     distances = similarity[movie_index]
@@ -33,25 +42,24 @@ def recommend(movie):
 
     recommended_movies = []
     recommended_posters = []
-    recommended_links = []
+
     for i in movie_list:
-        movie_id = movies.iloc[i[0]].movie_id
-        recommended_movies.append(movies.iloc[i[0]].title)
-        poster_url, movie_url = fetch_poster_and_url(movie_id)
-        recommended_posters.append(poster_url)
-        recommended_links.append(movie_url)
-    return recommended_movies, recommended_posters, recommended_links
+        movie_id = movies.iloc[i[0]].get("movie_id", None)
+        title = movies.iloc[i[0]].title
+        recommended_movies.append(title)
+        recommended_posters.append(fetch_poster(movie_id, title))
 
+    return recommended_movies, recommended_posters
 
-# 📂 Load data
+# --- Load Data ---
 movies_dict = pickle.load(open('movie_list.pkl', 'rb'))
 movies = pd.DataFrame(movies_dict)
 
+# Load similarity from compressed file
 with gzip.open('similarity.pkl.gz', 'rb') as f:
     similarity = pickle.load(f)
 
-# 🎬 Streamlit UI
-st.set_page_config(page_title="Movie Recommender", page_icon="🎥", layout="wide")
+# --- Streamlit UI ---
 st.title("🎬 Movie Recommender System")
 
 selected_movie_name = st.selectbox(
@@ -60,16 +68,9 @@ selected_movie_name = st.selectbox(
 )
 
 if st.button('Recommend'):
-    names, posters, links = recommend(selected_movie_name)
+    names, posters = recommend(selected_movie_name)
     cols = st.columns(5)
     for idx, col in enumerate(cols):
         with col:
-            st.markdown(
-                f"""
-                <a href="{links[idx]}" target="_blank">
-                    <img src="{posters[idx]}" style="width:180px; border-radius:10px; box-shadow:0px 4px 10px rgba(0,0,0,0.5);">
-                </a>
-                <p style="text-align:center; font-weight:bold; color:white;">{names[idx]}</p>
-                """,
-                unsafe_allow_html=True
-            )
+            st.markdown(f"**{names[idx]}**")
+            st.image(posters[idx], use_container_width=True)
