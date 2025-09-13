@@ -8,7 +8,10 @@ import os
 dotenv_path = find_dotenv()
 load_dotenv()
 API_KEY = os.getenv("TMDB_API_KEY")  # Load from .env
-
+if API_KEY:
+    API_KEY = API_KEY.strip()
+else:
+    raise ValueError("TMDB_API_KEY is missing in the environment.")
 def fetch_poster_and_url(movie_id):
     """Fetch multiple poster image URLs + movie page link."""
     url = f"https://api.themoviedb.org/3/movie/{movie_id}/images?api_key={API_KEY}"
