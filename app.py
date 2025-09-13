@@ -6,7 +6,7 @@ import gzip
 
 import os
 
-API_KEY = os.getenv("TMDB_API_KEY")  # Load from .env
+API_KEY = "007328af5182ab882459b6939428a1bb"
 
 def fetch_poster_and_url(movie_id):
     """Fetch multiple poster image URLs + movie page link."""
