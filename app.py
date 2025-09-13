@@ -3,11 +3,11 @@ import pickle
 import pandas as pd
 import requests
 import gzip
-from dotenv import load_dotenv
+from dotenv import load_dotenv,find_dotenv
 import os
 load_dotenv()
 API_KEY = os.getenv("TMDB_API_KEY")  # Load from .env
-
+print(API_KEY)
 def fetch_poster_and_url(movie_id):
     """Fetch multiple poster image URLs + movie page link."""
     url = f"https://api.themoviedb.org/3/movie/{movie_id}/images?api_key={API_KEY}"
