@@ -8,25 +8,24 @@ import os
 API_KEY=st.secrets["TMDB"]["API_KEY"]
 
 def fetch_poster_and_url(movie_id):
-    """Fetch multiple poster image URLs + movie page link."""
+    """Fetch one poster image URL + movie page link."""
+    # Get images
     url = f"https://api.themoviedb.org/3/movie/{movie_id}/images?api_key={API_KEY}"
     data = requests.get(url).json()
-
     posters = data.get('posters', [])
-    
+
     if posters:
-        # Construct full URLs for posters
-        poster_urls = [
-            "https://image.tmdb.org/t/p/w500" + poster['file_path']
-            for poster in posters if poster.get('file_path')
-        ]
+        poster_url = "https://image.tmdb.org/t/p/w500" + posters[0]['file_path']
     else:
-        poster_urls = ["https://via.placeholder.com/500x750?text=No+Poster"]
+        poster_url = "https://via.placeholder.com/500x750?text=No+Poster"
 
-    # Movie page URL
-    movie_url = f"https://www.themoviedb.org/movie/{movie_id}"
+    # ✅ Get movie details to build a valid URL
+    details_url = f"https://api.themoviedb.org/3/movie/{movie_id}?api_key={API_KEY}"
+    details = requests.get(details_url).json()
+    movie_url = details.get("homepage") or f"https://www.themoviedb.org/movie/{movie_id}"
 
-    return poster_urls, movie_url
+    return poster_url, movie_url
+
 
 # Recommend function
 def recommend(movie):
@@ -42,7 +41,7 @@ def recommend(movie):
         recommended_movies.append(movies.iloc[i[0]].title)
         poster_urls, movie_url = fetch_poster_and_url(movie_id)
         recommended_posters.append(poster_urls[0]) 
-        recommended_links.append(movie_url[0])
+        recommended_links.append(movie_url)
     return recommended_movies, recommended_posters, recommended_links
 
 
