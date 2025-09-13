@@ -42,7 +42,7 @@ def recommend(movie):
         movie_id = movies.iloc[i[0]].movie_id
         recommended_movies.append(movies.iloc[i[0]].title)
         poster_urls, movie_url = fetch_poster_and_url(movie_id)
-        recommended_posters.append(poster_urls[0])
+        recommended_posters.append(poster_urls[0]) if poster_urls else "https://via.placeholder.com/500x750?text=No+Poster"
         recommended_links.append(movie_url)
     return recommended_movies, recommended_posters, recommended_links
 
