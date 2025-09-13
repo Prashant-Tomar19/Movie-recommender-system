@@ -4,15 +4,18 @@ import pandas as pd
 import requests
 import gzip
 
-# Function to fetch movie poster from TMDB API
-def fetch_poster(movie_id):
+# Function to fetch movie poster + url from TMDB API
+def fetch_poster_and_url(movie_id):
     url = f"https://api.themoviedb.org/3/movie/{movie_id}?api_key=YOUR_TMDB_API_KEY&language=en-US"
     data = requests.get(url).json()
     poster_path = data.get('poster_path', None)
     if poster_path:
-        return "https://image.tmdb.org/t/p/w500/" + poster_path
+        poster_url = "https://image.tmdb.org/t/p/w500/" + poster_path
     else:
-        return "https://via.placeholder.com/500x750?text=No+Poster"
+        poster_url = "https://via.placeholder.com/500x750?text=No+Poster"
+
+    movie_url = f"https://www.themoviedb.org/movie/{movie_id}"
+    return poster_url, movie_url
 
 # Recommend function
 def recommend(movie):
@@ -22,11 +25,14 @@ def recommend(movie):
 
     recommended_movies = []
     recommended_posters = []
+    recommended_links = []
     for i in movie_list:
         movie_id = movies.iloc[i[0]].movie_id
         recommended_movies.append(movies.iloc[i[0]].title)
-        recommended_posters.append(fetch_poster(movie_id))
-    return recommended_movies, recommended_posters
+        poster_url, movie_url = fetch_poster_and_url(movie_id)
+        recommended_posters.append(poster_url)
+        recommended_links.append(movie_url)
+    return recommended_movies, recommended_posters, recommended_links
 
 
 # Load data
@@ -46,9 +52,16 @@ selected_movie_name = st.selectbox(
 )
 
 if st.button('Recommend'):
-    names, posters = recommend(selected_movie_name)
+    names, posters, links = recommend(selected_movie_name)
     cols = st.columns(5)
     for idx, col in enumerate(cols):
         with col:
-            st.text(names[idx])
-            st.image(posters[idx])
+            st.markdown(
+                f"""
+                <a href="{links[idx]}" target="_blank">
+                    <img src="{posters[idx]}" style="width:150px; border-radius:10px;">
+                </a>
+                <p style="text-align:center;">{names[idx]}</p>
+                """,
+                unsafe_allow_html=True
+            )
