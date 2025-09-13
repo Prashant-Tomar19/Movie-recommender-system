@@ -59,9 +59,9 @@ if st.button('Recommend'):
             st.markdown(
                 f"""
                 <a href="{links[idx]}" target="_blank">
-                    <img src="{posters[idx]}" style="width:150px; border-radius:10px;">
+                    <img src="{posters[idx]}" style="width:150px; border-radius:10px; box-shadow:0px 4px 10px rgba(0,0,0,0.5);">
                 </a>
-                <p style="text-align:center;">{names[idx]}</p>
+                <p style="text-align:center; font-weight:bold;">{names[idx]}</p>
                 """,
                 unsafe_allow_html=True
             )
